@@ -1,9 +1,10 @@
 # MySQL 5.7 điều chỉnh hiệu suất ngay sau khi cài đặt
 Blog này cập nhật [blog của Stephane Combaudon về điều chỉnh hiệu suất MySQL][1], và bao gồm cả điều chỉnh hiệu suất ngay sau khi cài đặt của MySQL 5.7.
 
-Vài năm trước đây, Stephane Combaudon đã viết 1 blog trên [10 cài đặt tùy chỉnh hiệu suất MySQL sau khi cài đặt ][1] bao gồm (cả hiện tại) các bản cũ hơn của MySQL: 5.1, 5.5 và 5.6. Trong bài đăng này, tôi sẽ xem xét các điều chỉnh trong MYSQL 5.7 ( với trọng tâm vào InnoDB).
 
-Tin tốt là MySQL đã có những giá trị mặc định tốt hơn đáng kể. Morgan Tocker đã tạo 1 [trang với một danh sách đầy đủ các tính năng trong MySQL 5.7][2], và sẽ là 1 nơi tham khảo tuyệt vời. Ví dụ, các biến sau đây sẽ được đặt mặc định:
+Vài năm trước đây, Stephane Combaudon đã viết 1 blog viết về [10 cài đặt tùy chỉnh hiệu suất MySQL sau khi cài đặt ][1] bao gồm (cả hiện tại) các bản cũ hơn của MySQL: 5.1, 5.5 và 5.6. Trong bài đăng này, tôi sẽ xem xét các điều chỉnh trong MYSQL 5.7 ( với trọng tâm vào InnoDB).
+
+Tin tốt là MySQL đã có những giá trị mặc định cho việc hiệu chỉnh tốt hơn. Morgan Tocker đã tạo 1 [trang với một danh sách đầy đủ các tính năng trong MySQL 5.7][2], và sẽ là 1 nơi tham khảo tuyệt vời. Ví dụ, các biến sau đây sẽ được đặt _mặc định_:
 
 - innodb_file_per_table=ON
 - innodb_stats_on_metadata = OFF
@@ -24,7 +25,7 @@ Mô tả:
 
 | Biến |  Giá trị | 
 | ------------- |:-------------:| 
-| innodb_buffer_pool_size |  Bắt đầu với 50% 70% tổng RAM. Không nhất thiết phải lớn hơn kích thước cơ sở dữ liệu|  
+| innodb_buffer_pool_size |  Bắt đầu với 50% 70% dung lượng RAM. Không nhất thiết phải lớn hơn kích thước cơ sở dữ liệu|  
 | innodb_flush_log_at_trx_commit | * 1   (Mặc định) 
 |                                |0/2 hiệu suất cao hơn,kém tin cậy hơn)|  
 | innodb_log_file_size |  128M – 2G (không cần thiết phải lớn hơn vùng đệm) |  
@@ -34,9 +35,9 @@ Mô tả:
 
 Tiếp theo là gì?
 
-Đây là những xuất phát điểm tốt cho bất kỳ cài đặt mới nào. 1 số các biến khác có thể cải thiện hiệu năng của MySQL cho 1 vài khối lượng công việc. Thông thường, tôi sẽ thiết lập  công cụ giám sát/đồ thị hóa MySQL (ví dụ, [nền tảng giảm sát và quản lý Percona][3]) và sau đó kiểm tra bảng điều khiển MySQL để điều chỉnh hiệu năng sau này.
+Đây là những xuất phát điểm tốt cho bất kỳ cài đặt mới nào. 1 số các biến khác có thể cải thiện hiệu năng của MySQL cho 1 vài khối lượng công việc. Thông thường, tôi sẽ thiết lập  công cụ giám sát/đồ thị hóa MySQL (ví dụ, [nền tảng giảm sát và quản lý Percona][3]) và sau đó kiểm tra bảng điều khiển MySQL để xem những điều chỉnh khác.
 
-Liệu chúng ta có thể điều chỉnh thêm gì nữa dựa trên các đồ thị không?
+_**Chúng ta có thể chỉnh những gì dựa vào cơ sở đồ thị?**_
 
 Kích thước vùng đệm InnoDB. Hãy xem những đồ thị sau:
 
@@ -44,12 +45,11 @@ Kích thước vùng đệm InnoDB. Hãy xem những đồ thị sau:
 
 ![MySQL 5.7 Performance Tuning][5]
 
-Như chúng ta có thể thấy, chúng ta có thể hưởng lợi từ việc tăng kích thước vùng đệm InnoDB 1 chút lên ~10G, vì chúng ta có RAM và số trang miễn phí nhỏ so với tổng số vùng đệm.
+Như ta có thể thấy, chúng ta có thể hưởng lợi từ việc tăng kích thước vùng đệm InnoDB 1 chút lên ~10G, vì chúng ta có RAM và số trang miễn phí nhỏ so với tổng số vùng đệm.
 
 Kích thước file log InnoDB. Xem đồ thị sau:
 
 ![MySQL 5.7 Performance Tuning][6]
-
 
 Như chúng ta có thể thấy, InnoDB thường ghi 2.26 GB dữ liệu mỗi giờ, vượt quá kích thước tổng của các file log (2G). Bây giờ chúng ta có thể tăng biến innodb_log_file_size và khởi động lại MySQL. Một cách khác, sử dụng "hiển thị trạng thái engine InnoDB" để [tính toán kích thước file log InnoDB hợp lý][7]
 
@@ -61,7 +61,6 @@ innodb_autoinc_lock_mode
 
 Cài đặt [innodb_autoinc_lock_mode][8] =2 (chế độ interleaved) có thể sẽ loại bỏ những thứ cần thiết cho khóa AUTO_INC mức-bảng ( và có thể tăng hiệu năng khi lệnh insert nhiều dòng được sử dụng để thêm các giá trị vào bảng mới khóa chỉnh tự_tăng).  Điều này yêu cầu binlog_format=ROW  hoặc MIXED  (và ROW thì mặc định trong MySQL 5.7).
 
-
 innodb_io_capacity và innodb_io_capacity_max
 
 Đây là một điều chỉnh nâng cao hơn, và chỉ có ý nghĩa khi bạn đang thực hiện việc viết rất nhiều trong tất cả các thời gian ( nó không áp dụng cho việc đọc, ví dụ các lệnh SELECT). Nếu bạn thực sự cần điều chỉnh nó, cách tốt nhất là bạn phải biết có bao nhiêu IOPS mà hệ thống có thể thực hiện. Ví dụ, nếu server có 1 drive SSD, chúng ta có thể đặt innodb_io_capacity_max=6000 và innodb_io_capacity=3000 (50% của tối đa) . Đây là 1 ý tưởng tốt để chạy sysbench hay bất cứ công cụ benchmark nào để đánh giá thông lượng đĩa.
@@ -69,7 +68,6 @@ innodb_io_capacity và innodb_io_capacity_max
 Nhưng liệu chúng ta có cần phải lo lắng về cài đặt này?Xem biểu đồ về [những trang bẩn][9] của vùng đệm":
 
 ![screen-shot-2016-10-03-at-7-19-47-pm][10]
-
 
 Trong trường hợp này, tổng số lượng các trang bẩn là rất cao, và trông như là InnoDB không thể duy trì việc làm sạch chúng. Nếu chúng ta có 1 hệ thống đĩa phụ tốc độ cao ( ví dụ SSD), chúng ta có thể hưởng lợi bằng cách tăng innodb_io_capacity và innodb_io_capacity_max.
 
